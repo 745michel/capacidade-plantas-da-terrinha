@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capacidade das Plantas</title>
+<style>
+:root {
+  --bg: #f5f4f0; --surface: #ffffff; --surface-2: #faf9f6; --line: #e3e0d8; --line-strong: #cfcabd;
+  --text: #1f1d1a; --muted: #6b665c; --faint: #9a9488;
+  --accent: #b5541b; --accent-soft: #f6e6da;
+  --p1: #2f6f9f; --p2: #b5541b; --p3: #4f7d3a; --p4: #7a4f9a;
+  --bar-bg: #eeebe4; --hit: #fff3b0;
+  --radius: 10px; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161513; --surface: #1f1e1b; --surface-2: #252420; --line: #34322d; --line-strong: #46433c;
+    --text: #ece9e2; --muted: #a8a397; --faint: #7b766c;
+    --accent: #e08a52; --accent-soft: #3a2a1f;
+    --p1: #6aa6d4; --p2: #e08a52; --p3: #8cbf6f; --p4: #b48ad6;
+    --bar-bg: #2e2c28; --hit: #5a4b10;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161513; --surface: #1f1e1b; --surface-2: #252420; --line: #34322d; --line-strong: #46433c;
+  --text: #ece9e2; --muted: #a8a397; --faint: #7b766c;
+  --accent: #e08a52; --accent-soft: #3a2a1f;
+  --p1: #6aa6d4; --p2: #e08a52; --p3: #8cbf6f; --p4: #b48ad6;
+  --bar-bg: #2e2c28; --hit: #5a4b10;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 20px 16px 48px; overflow-x: clip; }
+.sub { overflow-wrap: anywhere; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; margin-bottom: 16px; }
+h1 { margin: 0; font-size: 24px; letter-spacing: -.01em; }
+.sub { color: var(--muted); font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* barra de controles */
+.controls { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0;
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.search { flex: 1 1 260px; position: relative; }
+.search input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--surface); color: var(--text); font: inherit; }
+.search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--faint); }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; color: var(--muted); font: inherit; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+.field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.field input { width: 56px; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--surface); color: var(--text); font: inherit; text-align: right; }
+.ctl-label { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; margin-right: 2px; }
+.ctl-group { display: inline-flex; align-items: center; gap: 6px; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 22px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); }
+.kpi b { display: block; font-size: 22px; font-weight: 650; }
+.kpi span { color: var(--muted); font-size: 12px; }
+.kpi.destaque { border-color: var(--bp-line); background: color-mix(in srgb, var(--bp-line) 7%, var(--surface)); }
+.kpi.destaque b { color: var(--bp-line); }
+.kpi small { display: block; color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+
+/* mapa das plantas */
+.plant { --pc: var(--p1); background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  margin-bottom: 22px; box-shadow: var(--shadow); overflow: hidden; }
+.plant-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 14px 18px;
+  border-bottom: 1px solid var(--line); border-left: 5px solid var(--pc); }
+.plant-head h2 { margin: 0; font-size: 18px; }
+.plant-head .sub { flex: 1; }
+.floor { padding: 18px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 16px 16px; background-color: var(--surface-2); }
+.machine { background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: var(--radius);
+  display: flex; flex-direction: column; min-width: 0; }
+.machine.hit { border-color: var(--pc); box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 25%, transparent); }
+.m-head { display: flex; gap: 10px; align-items: center; padding: 10px 12px 8px; border-bottom: 1px dashed var(--line); }
+.m-icon { flex: none; width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--pc) 15%, transparent); color: var(--pc); }
+.m-name { font-weight: 650; overflow-wrap: anywhere; }
+.m-meta { color: var(--muted); font-size: 12px; }
+.m-list { list-style: none; margin: 0; padding: 6px 12px 10px; }
+.m-list li { padding: 5px 0; cursor: pointer; }
+.m-list li + li { border-top: 1px solid var(--line); }
+.p-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.p-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.p-name .cod { color: var(--faint); margin-right: 4px; }
+.p-val { flex: none; font-weight: 600; }
+.bar { height: 5px; border-radius: 3px; background: var(--bar-bg); margin-top: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--pc); }
+li.hit .p-name { background: var(--hit); border-radius: 3px; }
+.more { border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; padding: 4px 12px 10px; cursor: pointer; text-align: left; }
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+
+/* tabela */
+.table-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; color: var(--muted); cursor: pointer; user-select: none; }
+th.r, td.r { text-align: right; }
+th[aria-sort]::after { content: " ▲"; font-size: 10px; }
+th[aria-sort="descending"]::after { content: " ▼"; }
+td.prod { white-space: normal; min-width: 260px; }
+tbody tr:hover { background: var(--surface-2); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--pc); }
+.tag { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--accent-soft); color: var(--text); }
+
+/* detalhe */
+dialog { border: 1px solid var(--line-strong); border-radius: 14px; background: var(--surface); color: var(--text);
+  padding: 0; width: min(640px, calc(100vw - 32px)); }
+dialog.wide { width: min(880px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+.d-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: flex-start; }
+.d-head h3 { margin: 0; font-size: 16px; flex: 1; }
+.d-close { border: 0; background: none; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; }
+.d-body { padding: 14px 18px 18px; }
+.d-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.d-grid div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.d-grid b { display: block; font-size: 16px; }
+.d-grid span { font-size: 12px; color: var(--muted); }
+.d-body h4 { margin: 4px 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.foot { color: var(--faint); font-size: 12px; margin-top: 28px; }
+.sel { padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.btn.mini { padding: 3px 8px; font-size: 12px; }
+#dias.manual { border-color: var(--accent); }
+#extrasBtn.tem { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.ext { width: 100%; font-size: 13px; }
+.ext th, .ext td { text-align: center; padding: 7px 8px; }
+.ext th:first-child, .ext td:first-child { text-align: left; }
+.ext th { position: static; cursor: default; line-height: 1.2; }
+.ext th small { display: block; font-weight: 400; color: var(--faint); font-size: 11px; }
+.ext th.fer { color: var(--p2); }
+.ext input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.ext td.tot { font-weight: 650; white-space: nowrap; }
+.ext td.tot small { font-weight: 400; color: var(--muted); }
+.prog { width: 100%; font-size: 13px; }
+.prog th { cursor: default; font-size: 12px; }
+.prog td { vertical-align: middle; }
+.prog td.prod { min-width: 0; white-space: normal; cursor: pointer; }
+.prog td.prod:hover { text-decoration: underline; }
+.prog td.hit { background: var(--hit); }
+.prog tr.on td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.prog input[type=number] { width: 92px; padding: 5px 7px; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--surface); color: var(--text); font: inherit; text-align: right; }
+.prog input[type=radio] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+.d-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.d-sum div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.d-sum b { display: block; font-size: 15px; } .d-sum span { font-size: 12px; color: var(--muted); }
+.d-sum .over b { color: #d0493c; }
+.d-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 13px;
+  padding: 6px 12px; border-radius: 7px; cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.prog-wrap { max-height: 52vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+
+/* desenho técnico (blueprint) */
+:root { --bp-paper: #f3f6f7; --bp-grid: #dde6ea; --bp-grid-strong: #c9d6dc; --bp-ink: #1d5675; --bp-ink-text: #ffffff;
+  --bp-line: #1d5675; --bp-muted: #4d6b7a; --bp-ink-dark: #123d55; --bp-ink-light: #6f9fbb; --bp-metal: #c3d1d8; --bp-bag: #e3a36f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bp-paper: #0f1f2a; --bp-grid: #182e3c; --bp-grid-strong: #20394a; --bp-ink: #2d7aa3;
+    --bp-ink-text: #f2f8fb; --bp-line: #5fa8cf; --bp-muted: #8fb0c2; --bp-ink-dark: #17465f; --bp-ink-light: #7fb6d6; --bp-metal: #3d5868; --bp-bag: #e08a52; }
+}
+:root[data-theme="dark"] { --bp-paper: #0f1f2a; --bp-grid: #182e3c; --bp-grid-strong: #20394a; --bp-ink: #2d7aa3;
+  --bp-ink-text: #f2f8fb; --bp-line: #5fa8cf; --bp-muted: #8fb0c2; --bp-ink-dark: #17465f; --bp-ink-light: #7fb6d6; --bp-metal: #3d5868; --bp-bag: #e08a52; }
+.bp { position: relative; margin-bottom: 26px; border: 1.5px solid var(--bp-line); border-radius: 4px; padding: 22px 18px 54px;
+  background-color: var(--bp-paper); color: var(--bp-line); }
+.bp::before { content: ""; position: absolute; inset: 6px; border: 1px solid var(--bp-grid-strong); pointer-events: none; }
+.bp-title { text-align: center; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 4px; font-weight: 500; }
+.bp-sub { text-align: center; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--bp-muted); margin-bottom: 26px; }
+.line { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); row-gap: 30px; }
+.st { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: opacity .2s; }
+.st.dim { opacity: .22; }
+.st-belt { position: absolute; left: 0; right: 0; top: 86px; height: 30px; border-top: 2px solid var(--bp-line); border-bottom: 2px solid var(--bp-line); }
+.st:first-child .st-belt { border-left: 2px solid var(--bp-line); border-radius: 16px 0 0 16px; left: 6px; }
+.st:last-child .st-belt { border-right: 2px solid var(--bp-line); border-radius: 0 16px 16px 0; right: 6px; }
+.st-belt i { position: absolute; inset: 3px 4px; background: var(--bp-line);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='22'%3E%3Ccircle cx='13' cy='11' r='9' fill='none' stroke='black' stroke-width='1.8'/%3E%3Cpath d='M10.5 6.5l5 4.5-5 4.5' fill='none' stroke='black' stroke-width='1.8'/%3E%3C/svg%3E") 0 0 / 26px 22px repeat-x;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='22'%3E%3Ccircle cx='13' cy='11' r='9' fill='none' stroke='black' stroke-width='1.8'/%3E%3Cpath d='M10.5 6.5l5 4.5-5 4.5' fill='none' stroke='black' stroke-width='1.8'/%3E%3C/svg%3E") 0 0 / 26px 22px repeat-x;
+  animation: esteira 1.6s linear infinite; }
+@keyframes esteira { to { -webkit-mask-position: 26px 0; mask-position: 26px 0; } }
+@media (prefers-reduced-motion: reduce) { .st-belt i { animation: none; } }
+.st-belt { top: 192px; }
+.st-arrow { position: absolute; right: -14px; top: 230px; width: 30px; color: var(--bp-line); }
+.st:last-child .st-arrow { display: none; }
+.st-block { position: relative; z-index: 1; width: 150px; aspect-ratio: 150 / 220; color: var(--bp-ink-text); transition: transform .15s; }
+.st-block svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.st:hover .st-block { transform: translateY(-3px); }
+.st-panel { position: absolute; left: 20%; width: 60%; top: 20%; height: 29.5%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; padding: 2px 4px; border-radius: 3px; }
+.st.hit .st-panel { outline: 3px solid var(--accent); outline-offset: 2px; }
+.st-model { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; opacity: .85; line-height: 1.15; overflow-wrap: anywhere; }
+.st-num { font-size: 34px; font-weight: 300; line-height: 1; letter-spacing: -.01em; }
+.st-num.med { font-size: 26px; }
+.st-num.txt { font-size: 14px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.st-bag { animation: cai 2.4s ease-in infinite; transform-box: fill-box; }
+@keyframes cai { 0%, 20% { transform: translateY(-8px); } 60%, 100% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .st-bag { animation: none; } }
+.st-card { position: relative; z-index: 1; margin-top: 12px; width: min(162px, 100%); background: var(--surface); border: 1.5px solid var(--bp-line);
+  border-radius: 8px; padding: 8px 10px 9px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+.st-card-top { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--bp-muted); font-size: 10.5px;
+  letter-spacing: .07em; text-transform: uppercase; }
+.st-card-n { font-size: 26px; font-weight: 700; color: var(--bp-line); line-height: 1.1; margin-top: 2px; }
+.st-card-sub { font-size: 11px; color: var(--bp-muted); margin-top: 1px; }
+.st-card .st-run { margin: 6px -4px 0; padding: 5px 0 0; border-top: 1px dashed var(--line-strong); max-width: none; }
+.st-run { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: var(--bp-line); text-align: center; padding: 0 8px; line-height: 1.25;
+  max-width: 176px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.st-run small { font-weight: 500; color: var(--bp-muted); }
+.occ { width: 140px; margin-top: 6px; font-size: 11px; color: var(--bp-muted); text-align: center; }
+.occ .bar { height: 7px; margin: 3px 0 0; background: color-mix(in srgb, var(--bp-line) 15%, transparent); }
+.occ .bar i { background: #3f9a5c; } .occ.warn .bar i { background: #d39b2a; } .occ.over .bar i { background: #d0493c; }
+.occ.over b { color: #d0493c; }
+.st-lbl { margin-top: 4px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--bp-muted); text-align: center;
+  padding: 0 8px; line-height: 1.3; max-width: 176px; }
+.bp-stamp { position: absolute; right: 18px; bottom: 14px; display: flex; border: 1px solid var(--bp-line); font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--bp-muted); background: var(--bp-paper); }
+.bp-stamp span { padding: 4px 8px; }
+.bp-stamp span + span { border-left: 1px solid var(--bp-line); }
+.bp-io { position: absolute; left: 22px; bottom: 16px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--bp-muted); }
+.bp { overflow: hidden; }
+@media (max-width: 640px) {
+  .bp-stamp { position: static; margin-top: 24px; flex-wrap: wrap; } .bp { padding: 18px 10px; } .bp-io { display: none; }
+  .bp-title { font-size: 16px; } .line { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .st-block { width: 124px; } .st-belt { top: 156px; } .st-arrow { top: 190px; } .st-num { font-size: 28px; } .st-model { font-size: 9.5px; }
+}
+@media (max-width: 640px) { .controls { position: static; } h1 { font-size: 20px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Capacidade das Plantas</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar produto, código ou máquina…" autocomplete="off">
+    </label>
+    <div class="seg" id="plantas" role="group" aria-label="Planta"></div>
+    <div class="ctl-group"><span class="ctl-label">Mostrar</span>
+      <div class="seg" id="unidade" role="group">
+        <button data-v="pac" aria-pressed="true">Pacotes</button>
+        <button data-v="emb" aria-pressed="false">Caixas / fardos</button>
+      </div>
+    </div>
+    <div class="ctl-group"><span class="ctl-label">Por</span>
+      <div class="seg" id="periodo" role="group">
+        <button data-v="hora" aria-pressed="false">Hora</button>
+        <button data-v="dia" aria-pressed="true">Dia</button>
+        <button data-v="mes" aria-pressed="false">Mês</button>
+      </div>
+    </div>
+    <div class="ctl-group"><span class="ctl-label">Horas/dia</span><span class="ctl-group" id="horasPl"></span></div>
+    <div class="ctl-group"><span class="ctl-label">Mês</span>
+      <select id="mes" class="sel"></select>
+      <label class="field"><input id="dias" type="number" min="1" max="31" step="1"> dias úteis</label>
+      <button id="diasAuto" class="btn mini" type="button" title="Voltar ao cálculo automático de dias úteis">auto</button>
+      <button id="extrasBtn" class="btn mini" type="button" title="Marcar sábados e feriados em que alguma planta vai trabalhar">Sábados / extras</button>
+    </div>
+    <div class="seg" id="visao" role="group" aria-label="Visão">
+      <button data-v="linha" aria-pressed="true">Desenho</button>
+      <button data-v="mapa" aria-pressed="false">Blocos</button>
+      <button data-v="tabela" aria-pressed="false">Tabela</button>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <main id="main"></main>
+  <div class="foot" id="foot"></div>
+</div>
+
+<dialog id="det"></dialog>
+
+<script>
+const DADOS = {"atualizado": "19/10/2026 13:59", "origem": "capacidade plantas.xlsx", "itens": [{"planta": "Matriz", "maquina": "01 SELGRON", "cod": "12006", "produto": "TAPIOCA OBA PREMIUM 560 G - CX 12", "marca": "OBA", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "T0072", "produto": "TAPIOCA WRAPIOCA 630 G - CX 12", "marca": "Wrapioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "00018", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 490 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "00006", "produto": "TAPIOCA DELIOCA PREMIUM 560 G - CX 12", "marca": "Delioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "00015", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 70 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "00094", "produto": "TAPIOCA DO BEM 560 G - CX 12", "marca": "Do Bem", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "00091", "produto": "TAPIOCA TAEQ PREMIUM 560 G - CX 10", "marca": "TAEQ", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "01 SELGRON", "cod": "00004", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 90 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "12006", "produto": "TAPIOCA OBA PREMIUM 560 G - CX 12", "marca": "OBA", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "T0072", "produto": "TAPIOCA WRAPIOCA 630 G - CX 12", "marca": "Wrapioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "00018", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 490 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "00006", "produto": "TAPIOCA DELIOCA PREMIUM 560 G - CX 12", "marca": "Delioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "00015", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 70 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "00094", "produto": "TAPIOCA DO BEM 560 G - CX 12", "marca": "Do Bem", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "00091", "produto": "TAPIOCA TAEQ PREMIUM 560 G - CX 10", "marca": "TAEQ", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "02 SELGRON", "cod": "00004", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 90 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 40.0, "ppm": 35.5181, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "03 MASIPACK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "03 MASIPACK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "04 MASIPACK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "04 MASIPACK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "05 GOLPACK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "05 GOLPACK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "06 SELGRON", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "06 SELGRON", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "07 ALFATECH", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "07 ALFATECH", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 12.0, "ppm": 10.6554, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "08 SPK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 16.0, "ppm": 14.2072, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "08 SPK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 24.0, "ppm": 21.3109, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "08 SPK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 16.0, "ppm": 14.2072, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "08 SPK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "CX", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 24.0, "ppm": 21.3109, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "09 SPK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "09 SPK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "10 RAUMAK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "11 RAUMAK", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "500gr", "un_emb": 24.0, "ppm_nominal": 25.0, "ppm": 22.1988, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "12 ALFATECH", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 18.0, "ppm": 15.9831, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "13 RAUMAK", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "FD", "categoria": "1 kg", "un_emb": 12.0, "ppm_nominal": 20.0, "ppm": 17.759, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "12006", "produto": "TAPIOCA OBA PREMIUM 560 G - CX 12", "marca": "OBA", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "T0072", "produto": "TAPIOCA WRAPIOCA 630 G - CX 12", "marca": "Wrapioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "00018", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 490 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "00006", "produto": "TAPIOCA DELIOCA PREMIUM 560 G - CX 12", "marca": "Delioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "00015", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 70 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "00094", "produto": "TAPIOCA DO BEM 560 G - CX 12", "marca": "Do Bem", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "00091", "produto": "TAPIOCA TAEQ PREMIUM 560 G - CX 10", "marca": "TAEQ", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "14 MASIPACK", "cod": "00004", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 90 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "12006", "produto": "TAPIOCA OBA PREMIUM 560 G - CX 12", "marca": "OBA", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "T0072", "produto": "TAPIOCA WRAPIOCA 630 G - CX 12", "marca": "Wrapioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "00018", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 490 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "00006", "produto": "TAPIOCA DELIOCA PREMIUM 560 G - CX 12", "marca": "Delioca", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "00015", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 70 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "00094", "produto": "TAPIOCA DO BEM 560 G - CX 12", "marca": "Do Bem", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "00091", "produto": "TAPIOCA TAEQ PREMIUM 560 G - CX 10", "marca": "TAEQ", "propria": true, "grupo": "Porção", "categoria": "Porção", "un_emb": 84.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Matriz", "maquina": "15 MASIPACK", "cod": "00004", "produto": "TAPIOCA DA TERRINHA NA MEDIDA 90 G - CX 100", "marca": "Da Terrinha", "propria": false, "grupo": "Porção", "categoria": "Porção", "un_emb": 100.0, "ppm_nominal": 35.0, "ppm": 31.0783, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "42470", "produto": "11726 CANELA PO COOP 60G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 41.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 02", "cod": "42719", "produto": "11710 BICARBONATO DE SODIO COOP 80 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "42721", "produto": "11746 COMINHO EM PO COOP 70 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 38.25, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "42723", "produto": "11756 CURRY EM PO COOP 60 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 41.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL EXT", "cod": "42725", "produto": "11770 LOURO EM FOLHAS COOP 10 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Ext", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 5.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "42771", "produto": "10354 CAMOMILA COOP 10 G - FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 28.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "42773", "produto": "11719 CANELA EM CASCA QUEBRADA COOP 25 G FD 24", "marca": "Coop", "propria": true, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 01", "cod": "42775", "produto": "11737 COLORIFICO COOP 80 G - FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 46.75, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "42814", "produto": "11506 FARINHA MILHO AMARELA COOP 500 G FD 10", "marca": "Coop", "propria": true, "grupo": "Farináceos Coco", "categoria": "Farináceos", "un_emb": 10.0, "ppm_nominal": null, "ppm": 18.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "42859", "produto": "POLVILHO AZEDO COOP 500 G FD 12", "marca": "Coop", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "42872", "produto": "11521 TRIGO PARA KIBE COOP 500 G FD 12", "marca": "Coop", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "42981", "produto": "11808 PIMENTA DO REINO EM PO COOP 70 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 41.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "42985", "produto": "11801 PIMENTA CALABRESA FLOCOS COOP 30 G FD 24", "marca": "Coop", "propria": true, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "43001", "produto": "11818 TEMPERO BAIANO PO COOP 50 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "48005", "produto": "01516 FUBA PRE COZIDO DA TERRINHA 500 G FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "48023", "produto": "01506 FARINHA MILHO AMARELA DA TERRINHA 500 G FD10", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Farináceos", "un_emb": 10.0, "ppm_nominal": null, "ppm": 18.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "48064", "produto": "01704 ALHO DESIDRATADO GRANULADO DA TERRINHA 20 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "48395", "produto": "11787 PAPRICA DOCE EM PO COOP 50 G FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "48398", "produto": "01800 PIMENTA CALABRESA FLOC DA TERRINHA 15 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "48624", "produto": "01788 PAPRICA PICANTE EM PO DA TERRINHA 15 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 45.9, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "48642", "produto": "01785 PAPRICA DOCE EM PO DA TERRINHA 15 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 45.9, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "48667", "produto": "01717 CANELA CASCA QUEBRADA DA TERRINHA 10 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "48685", "produto": "01723 CANELA PO DA TERRINHA 20 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "48696", "produto": "01777 NOZ MOSCADA BOLA DA TERRINHA 08 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "48705", "produto": "01745 COMINHO EM PO DA TERRINHA 50 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 38.25, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "48723", "produto": "01701 ACAFRAO DA TERRINHA 30 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL EXT", "cod": "48751", "produto": "01769 LOURO EM FOLHA DA TERRINHA 08 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Ext", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 7.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "48766", "produto": "01782 OREGANO DA TERRINHA 08 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "48783", "produto": "01702 ALECRIM DA TERRINHA 06 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "48787", "produto": "01715 CAMOMILA DA TERRINHA 06 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "50145", "produto": "01825 TEMPERO PARA FRANGO DA TERRINHA 50 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 01", "cod": "50722", "produto": "01739 COLORIFICO DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 12.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "51328", "produto": "01784 OREGANO DA TERRINHA 100 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 12.0, "ppm_nominal": null, "ppm": 13.6, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "52653", "produto": "12505 FARINHA MANDIOCA CRUA GROSSA OBA 250 G CX 12", "marca": "OBA", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "52655", "produto": "12503 FARINHA MANDIOCA TORRADA OBA 500 G CX 12", "marca": "OBA", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "52656", "produto": "12506 FARINHA MILHO AMARELA OBA 250 G CX 12.0", "marca": "OBA", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "52661", "produto": "12515 FUBA MIMOSO OBA 500 g CX 12.0", "marca": "OBA", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "OLC 13", "cod": "52688", "produto": "01604 CANJIQUINHA XEREM DA TERRINHA 500 G FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Almofada", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 27.2, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "IMAPACK 12", "cod": "54148", "produto": "02606 FEIJAO BRANCO DA TERRINHA PREMIUM 500G CX12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 11.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "OLC 13", "cod": "61828", "produto": "01602 CANJICA AMARELA DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Almofada", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 27.2, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "68108", "produto": "11559 ERVA CIDREIRA COOP 12 G - FD 24", "marca": "Coop", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 39.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "70448", "produto": "SEMOLA DE MILHO MESTRE CUCA 1 kg - UND FD 12.0", "marca": "Mestre Cuca", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71699", "produto": "21707 CANELA CASCA DA TERRINHA 500G - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 6.0, "ppm_nominal": null, "ppm": 5.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71703", "produto": "21799 COMINHO EM PO DA TERRINHA 1 kg - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71705", "produto": "21798 CUSCUZ DA TERRINHA 2 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71707", "produto": "21795 FARINHA ROSCA DA TERRINHA 2 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71709", "produto": "21797 FARINHA MANDIOCA CRUA FINA DA TERRINHA 2KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71711", "produto": "21796 FARINHA MILHO AMARELA DA TERRINHA 2 KG - CX 03", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 3.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71715", "produto": "21793 FUBA MIMOSO DA TERRINHA 2 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71717", "produto": "21792 GRAO DE BICO DA TERRINHA 2 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Grãos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71719", "produto": "21787 LENTILHA DA TERRINHA 2 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Grãos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71723", "produto": "21785 OREGANO DA TERRINHA 500 G - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 6.0, "ppm_nominal": null, "ppm": 5.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71725", "produto": "20978 PIMENTA REINO DA TERRINHA 1 kg - CX 6.0", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71727", "produto": "21791 TRIGO PARA KIBE DA TERRINHA 2 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "71729", "produto": "21790 UVA PASSA PRETA DA TERRINHA 1 KG - CX 06", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Especiarias", "un_emb": 6.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "71928", "produto": "01786 OREGANO DA TERRINHA 200 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 12.0, "ppm_nominal": null, "ppm": 11.9, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 02", "cod": "72091", "produto": "01708 BICARBONATO DE SODIO DA TERRINHA 20 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 02", "cod": "72092", "produto": "01710 BICARBONATO DE SODIO DA TERRINHA 80 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "72093", "produto": "01732 CHIMICHURRI DA TERRINHA 20G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 01", "cod": "72094", "produto": "01736 COLORIFICO DA TERRINHA 70 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 46.75, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "72096", "produto": "01754 CURRY EM PO DA TERRINHA 15 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 45.9, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "72097", "produto": "01759 ERVA DOCE DA TERRINHA 15 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "72098", "produto": "01804 PIMENTA COM COMINHO PO DA TERRINHA 50G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "72099", "produto": "01806 PIMENTA DO REINO EM PO DA TERRINHA 20G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "72100", "produto": "01813 SALSA DESIDRATADA DA TERRINHA 08 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "72101", "produto": "01818 TEMPERO BAIANO PO DA TERRINHA 50 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "72102", "produto": "01822 TEMPERO PARA CHURRASCO DA TERRINHA 40G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "72106", "produto": "01750 CRAVO DA INDIA DA TERRINHA 10 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "72108", "produto": "01774 MANJERICAO DA TERRINHA 10 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "SELGRON 02", "cod": "72170", "produto": "01712 BICARBONATO DE SODIO DA TERRINHA 500 G - FD 06", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 6.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "73227", "produto": "01750 CRAVO DA INDIA DA TERRINHA 10 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 12.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "74109", "produto": "01734 COENTRO EM PO DA TERRINHA 18 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 41.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "74110", "produto": "01821 TEMPERO PARA CARNE DA TERRINHA 50 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "75316", "produto": "22516 FARINHA MANDIOCA TORRADA RANCHO 700G - CX 24", "marca": "Rancho", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 24.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "75317", "produto": "22515 FUBA MIMOSO RANCHO 700G - CX 24", "marca": "Rancho", "propria": true, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 24.0, "ppm_nominal": null, "ppm": 8.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "75359", "produto": "14701 - ACAFRAO MERCADAO 30 g - UND CX 24.0", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 02", "cod": "75360", "produto": "14708 - BICARBONATO DE SODIO MERCADAO 20 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 01", "cod": "75363", "produto": "14736 COLORIFICO MERCADAO 70 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 46.75, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "75364", "produto": "14750 CRAVO DA INDIA MERCADAO 10G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "75365", "produto": "14774 - MANJERICAO MERCADAO 10G - UND CX 24.0", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "75366", "produto": "14782 OREGANO MERCADAO 08 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "75367", "produto": "14785 - PAPRICA DOCE EM PO MERCADAO 15 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 45.9, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "GOLPACK 06", "cod": "75369", "produto": "14717 CANELA CASCA QUEBRADA MERCADAO 10 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL EXT", "cod": "75372", "produto": "14769 LOURO EM FOLHA MERCADAO 08 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Ext", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 5.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 04", "cod": "75373", "produto": "14800 PIMENTA CALABRESA FLOC MERCADAO 15 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ROSCA MIX 03", "cod": "75374", "produto": "14806 PIMENTA DO REINO EM PO MERCADAO 20G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "75375", "produto": "14818 TEMPERO BAIANO PO MERCADAO 50 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "CANECA MIX 05", "cod": "75376", "produto": "14825 TEMPERO PARA FRANGO MERCADAO 50 G - CX 24", "marca": "Mercadão", "propria": true, "grupo": "Especiarias Geral", "categoria": "Especiarias", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "SELGRON 01", "cod": "75956", "produto": "01743 COLORIFICO DA TERRINHA 1,01 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Especiarias Col Bic", "categoria": "Especiarias", "un_emb": 12.0, "ppm_nominal": null, "ppm": 21.25, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "79002", "produto": "00931 COCO RALADO DESIDRATADO DA TERRINHA 50 G - CX 50", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Coco", "un_emb": 50.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "79003", "produto": "00932 COCO RALADO DESIDRATADO DATERRINHA 100 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Coco", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "79005", "produto": "00933 COCO RALADO UMIDO ADOCADO DA TERRINHA 50 G - CX 50", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Coco", "un_emb": 50.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "79006", "produto": "00934 COCO RALADO UMIDO ADOCADO DA TERRINHA 100 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Coco", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "79007", "produto": "00935 COCO FLOCOS UMIDO ADOCADO DA TERRINHA 100 G - CX 24", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Coco", "un_emb": 24.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ALFATECK 14", "cod": "80605", "produto": "01614 CANJICA BRANCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ALFATECK 15", "cod": "80605", "produto": "01614 CANJICA BRANCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 16", "cod": "80605", "produto": "01614 CANJICA BRANCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 14", "cod": "80607", "produto": "01615 ERVILHA PARTIDA DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 15", "cod": "80607", "produto": "01615 ERVILHA PARTIDA DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 16", "cod": "80607", "produto": "01615 ERVILHA PARTIDA DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 14", "cod": "80641", "produto": "01617 LENTILHA DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 15", "cod": "80641", "produto": "01617 LENTILHA DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 16", "cod": "80641", "produto": "01617 LENTILHA DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ALFATECK 14", "cod": "80643", "produto": "01618 MILHO PIPOCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 15", "cod": "80643", "produto": "01618 MILHO PIPOCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 16", "cod": "80643", "produto": "01618 MILHO PIPOCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "IMAPACK 12", "cod": "80647", "produto": "00019 TAPIOCA DA TERRINHA GRANULADA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 17.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 11", "cod": "80647", "produto": "00019 TAPIOCA DA TERRINHA GRANULADA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 17.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "ALFATECK 14", "cod": "80649", "produto": "01616 GRAO DE BICO DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 15", "cod": "80649", "produto": "01616 GRAO DE BICO DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "ALFATECK 16", "cod": "80649", "produto": "01616 GRAO DE BICO DA TERRINHA 350 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Menor", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 28.05, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "IMAPACK 12", "cod": "83381", "produto": "01619 SAGU MANDIOCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 16.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MASIPACK 11", "cod": "83381", "produto": "01619 SAGU MANDIOCA DA TERRINHA 400 G - CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 16.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MANUAL", "cod": "87161", "produto": "01517 POLVILHO AZEDO DA TERRINHA 500 G - EXP CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 4.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "OLC 13", "cod": "87960", "produto": "01602 CANJICA AMARELA DA TERRINHA 500G - EXP CX 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Almofada", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 27.2, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MANUAL", "cod": "89620", "produto": "00014 TAPIOCA DA TERRINHA GRANULADA 5 KG - FD 5", "marca": "Da Terrinha", "propria": false, "grupo": "Manual Interno", "categoria": "Farináceos", "un_emb": 5.0, "ppm_nominal": null, "ppm": 5.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "MASIPACK 07- 08", "cod": "94691", "produto": "00931 COCO RALADO DESIDRATADO DA TERRINHA 50 G - CX 40", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos Coco", "categoria": "Coco", "un_emb": 40.0, "ppm_nominal": null, "ppm": 42.5, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "Filial", "maquina": "IMAPACK 12", "cod": "100863", "produto": "MILHO PIPOCA DA TERRINHA 1KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 25.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MASIPACK 11", "cod": "100863", "produto": "MILHO PIPOCA DA TERRINHA 1KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Grãos Maior", "categoria": "Grãos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 25.0, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": true}, {"planta": "Filial", "maquina": "MASIPACK 11", "cod": "68867", "produto": "09518 MISTURA PAO DE QUEIJO DA TERRINHA 250G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": "Farináceos", "categoria": "Farináceos", "un_emb": 12.0, "ppm_nominal": null, "ppm": 22.8, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": false}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": null, "produto": "FAROFA PRONTA DA TERRINHA TRADICIONAL 150 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 18.5, "cap_turno": 370.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": "72228", "produto": "00304 FAROFA PRONTA DA TERRINHA TRADICIONAL 150 G - FD 80", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 80.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 300.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": "36609", "produto": "00311 FAROFA PRONTA DA TERRINHA TRADICIONAL 400 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": "36612", "produto": "00312 FAROFA PRONTA DA TERRINHA APIMENTADA 400 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": "78643", "produto": "14311 FAROFA PRONTA TRADICIONAL MERCADAO 400G - FD 24", "marca": "Mercadão", "propria": true, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": null, "produto": "FAROFA TRADICIONAL DIA 500 G - FD 24", "marca": null, "propria": null, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 25.0, "cap_turno": 500.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": null, "produto": "FAROFA PRONTA SELECT TRADICIONAL 400 G - FD 24", "marca": null, "propria": null, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "01 MASIPACK", "cod": null, "produto": "FAROFA PRONTA BULNEZ TRADICIONAL 400 G - FD 24", "marca": null, "propria": null, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": null, "produto": "FAROFA PRONTA DA TERRINHA TRADICIONAL 150 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 18.5, "cap_turno": 370.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": "72228", "produto": "00304 FAROFA PRONTA DA TERRINHA TRADICIONAL 150 G - FD 80", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 80.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 300.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": "36609", "produto": "00311 FAROFA PRONTA DA TERRINHA TRADICIONAL 400 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": "36612", "produto": "00312 FAROFA PRONTA DA TERRINHA APIMENTADA 400 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": "78643", "produto": "14311 FAROFA PRONTA TRADICIONAL MERCADAO 400G - FD 24", "marca": "Mercadão", "propria": true, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": null, "produto": "FAROFA TRADICIONAL DIA 1 KG - FD 12", "marca": null, "propria": null, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 12.5, "cap_turno": 500.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": null, "produto": "FAROFA PRONTA SELECT TRADICIONAL 400 G - FD 24", "marca": null, "propria": null, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "02 INDUMAK", "cod": null, "produto": "FAROFA PRONTA BULNEZ TRADICIONAL 400 G - FD 24", "marca": null, "propria": null, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": null, "ppm": 50.0, "cap_turno": 1000.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "03 MASIPACK", "cod": null, "produto": "FAROFA ARTESANAL DA TERRINHA TRADICIONAL 300 G - CX 20", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 20.0, "ppm_nominal": null, "ppm": 14.5833, "cap_turno": 350.0, "horas_turno": 8.0, "emb_turno": "CX", "alergenico": null}, {"planta": "2JM", "maquina": "03 MASIPACK", "cod": null, "produto": "FAROFA ARTESANAL DA TERRINHA APIMENTADA 300 G - CX 20", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 20.0, "ppm_nominal": null, "ppm": 14.5833, "cap_turno": 350.0, "horas_turno": 8.0, "emb_turno": "CX", "alergenico": null}, {"planta": "2JM", "maquina": "04 JATEK", "cod": "48050", "produto": "01502 FARINHA MANDIOCA FINA CRUA DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 18.9, "cap_turno": 756.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "04 JATEK", "cod": "48056", "produto": "01501 FARINHA MANDIOCA FINA CRUA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 18.0, "cap_turno": 720.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "04 JATEK", "cod": "48058", "produto": "FARINHA MANDIOCA TORRADA DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 16.5, "cap_turno": 660.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "05 MASIPACK", "cod": "48052", "produto": "01505 FARINHA MANDIOCA GROSSA CRUA DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 21.75, "cap_turno": 870.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "06 MASIPACK", "cod": "48054", "produto": "01504 FARINHA MANDIOCA GROSSA CRUA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 14.4, "cap_turno": 576.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "06 MASIPACK", "cod": "83801", "produto": "FARINHA DE MANDIOCA GROSSA MERCADAO 1 KG - FD 12", "marca": "Mercadão", "propria": true, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 14.4, "cap_turno": 576.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "07 INDUMAK", "cod": null, "produto": "FARINHA MANDIOCA FINA CRUA DA TERRINHA 3 KG - FD 5", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 5.0, "ppm_nominal": null, "ppm": 7.875, "cap_turno": 756.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "08 INDUMAK", "cod": null, "produto": "POLVILHO AZEDO DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 17.5, "cap_turno": 700.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "08 INDUMAK", "cod": "48145", "produto": "01518 POLVILHO DOCE DA TERRINHA 500 G - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 17.5, "cap_turno": 700.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "08 INDUMAK", "cod": null, "produto": "POLVILHO DOCE DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 15.0, "cap_turno": 600.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "2JM", "maquina": "08 INDUMAK", "cod": "52750", "produto": "01510 FECULA MANDIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": null, "ppm": 15.0, "cap_turno": 600.0, "horas_turno": 8.0, "emb_turno": "FD", "alergenico": null}, {"planta": "Filial Tapioca", "maquina": "01 SELGRON", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": 28.0, "ppm": 25.9512, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Filial Tapioca", "maquina": "02 SELGRON", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": 30.0, "ppm": 27.8049, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Filial Tapioca", "maquina": "03 SELGRON", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": 28.0, "ppm": 25.9512, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Filial Tapioca", "maquina": "03 SELGRON", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": 25.0, "ppm": 23.1707, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Filial Tapioca", "maquina": "04 SELGRON", "cod": "00002", "produto": "TAPIOCA DA TERRINHA 500 G - FD 24", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 24.0, "ppm_nominal": 30.0, "ppm": 27.8049, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}, {"planta": "Filial Tapioca", "maquina": "04 SELGRON", "cod": "00001", "produto": "TAPIOCA DA TERRINHA 1 KG - FD 12", "marca": "Da Terrinha", "propria": false, "grupo": null, "categoria": null, "un_emb": 12.0, "ppm_nominal": 28.0, "ppm": 25.9512, "cap_turno": null, "horas_turno": null, "emb_turno": null, "alergenico": null}]};
+const CORES = ["--p1", "--p2", "--p3", "--p4"];
+const VISIBLE = 6;
+
+const st = { q: "", plantasSel: [], unidade: "pac", periodo: "dia", horas: 15, visao: "linha", mes: "", diasManual: {}, extras: {},
+  sort: { col: "cap", dir: -1 }, abertas: new Set(), rod: {}, nec: {}, horasPlanta: {} };
+try { Object.assign(st, JSON.parse(localStorage.getItem("cap-plantas") || "{}"), { q: "", abertas: new Set(), rod: {} }); } catch (e) {}
+// o SKU marcado ▶ vale só enquanto a página está aberta; ao reabrir, cada máquina volta ao SKU padrão
+const salvar = () => { try { const { q, abertas, rod, ...rest } = st; localStorage.setItem("cap-plantas", JSON.stringify(rest)); } catch (e) {} };
+
+const itens = DADOS.itens;
+const plantasAtivas = () => st.plantasSel && st.plantasSel.length ? st.plantasSel : plantas;
+
+// ---- dias úteis do mês: segunda a sexta, sem feriados nacionais (dá pra ajustar à mão por mês) ----
+function pascoa(y) {   // algoritmo de Meeus/Jones/Butcher
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+    g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+    l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mes = Math.floor((h + l - 7 * m + 114) / 31);
+  return new Date(y, mes - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
+function feriados(y) {
+  const sexta = pascoa(y); sexta.setDate(sexta.getDate() - 2);
+  return [[new Date(y, 0, 1), "Confraternização"], [sexta, "Sexta-feira Santa"], [new Date(y, 3, 21), "Tiradentes"],
+    [new Date(y, 4, 1), "Dia do Trabalho"], [new Date(y, 8, 7), "Independência"], [new Date(y, 9, 12), "N. Sra. Aparecida"],
+    [new Date(y, 10, 2), "Finados"], [new Date(y, 10, 15), "Proclamação da República"], [new Date(y, 10, 20), "Consciência Negra"],
+    [new Date(y, 11, 25), "Natal"]];
+}
+function diasUteis(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const fer = feriados(y).filter(([d]) => d.getMonth() === m - 1 && d.getDay() % 6 !== 0);
+  let n = 0;
+  for (let d = new Date(y, m - 1, 1); d.getMonth() === m - 1; d.setDate(d.getDate() + 1))
+    if (d.getDay() % 6 !== 0 && !fer.some(([f]) => f.getDate() === d.getDate())) n++;
+  return { n, fer };
+}
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const ymDe = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const nomeMes = ym => MESES[+ym.slice(5) - 1];
+const diasMes = () => st.diasManual[st.mes] ?? diasUteis(st.mes).n;   // dias úteis (seg a sex) do mês, iguais para todas
+// dias extras (sábados/feriados) marcados por planta: st.extras["2026-10"]["Matriz"] = ["2026-10-10", ...]
+// plantas que trabalham TODO sábado (entram sozinhos em todos os meses)
+const SABADO_SEMPRE = { "2JM": true };   // 2JM: sábado normal, turno da noite vai até 7h de domingo
+function sabadosDoMes(ym) {
+  const [y, m] = ym.split("-").map(Number), r = [];
+  for (let d = new Date(y, m - 1, 1); d.getMonth() === m - 1; d.setDate(d.getDate() + 1))
+    if (d.getDay() === 6) r.push(`${ym}-${String(d.getDate()).padStart(2, "0")}`);
+  return r;
+}
+const extrasManuais = p => (st.extras[st.mes] || {})[p] || [];
+const extrasDe = p => SABADO_SEMPRE[p] ? [...new Set([...extrasManuais(p), ...sabadosDoMes(st.mes)])] : extrasManuais(p);
+// horas do sábado por planta (sem valor = mesmas horas do dia normal)
+const HORAS_SABADO = { "2JM": 24, Matriz: 9, Filial: 9, "Filial Tapioca": 9 };   // 2JM: sábado 7h → domingo 7h; demais: sábado das 6h às 15h
+const ehSabado = iso => new Date(iso + "T12:00").getDay() === 6;
+const horasSab = p => HORAS_SABADO[p] ?? horasDe(p);
+const horasDoDia = (p, iso) => ehSabado(iso) ? horasSab(p) : horasDe(p);
+// horas de produção da planta no mês = dias úteis × h/dia + cada dia extra com as horas dele
+const horasMes = p => diasMes() * horasDe(p) + extrasDe(p).reduce((t, iso) => t + horasDoDia(p, iso), 0);
+function descHoras(p) {
+  const sab = extrasDe(p).filter(ehSabado).length, outros = extrasDe(p).length - sab;
+  return `${fmt(diasMes() + outros)} d × ${fmt(horasDe(p), 1)} h` + (sab ? ` + ${sab} sáb × ${fmt(horasSab(p), 1)} h` : "");
+}
+const diasDe = p => diasMes() + extrasDe(p).length;                     // dias de produção da planta no mês
+const EXTRAS_INICIAIS = { "2026-10": { Matriz: ["2026-10-10"], "Filial Tapioca": ["2026-10-10"] } };
+for (const [ym, v] of Object.entries(EXTRAS_INICIAIS)) if (!st.extras[ym]) st.extras[ym] = structuredClone(v);
+// turno padrão de cada planta (h/dia); dá pra mudar no topo da página
+const HORAS_PADRAO = { Matriz: 15, Filial: 9, "2JM": 16, "Filial Tapioca": 15 };   // 2JM: 2 turnos de 8 h
+// quando os padrões mudam, horas digitadas antes (guardadas no navegador) deixam de valer
+const HORAS_VERSAO = "2026-10-08c";
+if (st.horasVersao !== HORAS_VERSAO) { st.horasPlanta = {}; st.horasVersao = HORAS_VERSAO; }
+const horasDe = p => st.horasPlanta[p] ?? HORAS_PADRAO[p] ?? 15;
+const plantas = [...new Set(itens.map(i => i.planta))];
+const corDe = p => `var(${CORES[plantas.indexOf(p) % CORES.length]})`;
+itens.forEach((it, n) => { it.id = n; it.busca = sem(`${it.cod || ""} ${it.produto} ${it.maquina} ${it.grupo || ""}`); });
+
+function sem(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+const fmt = (v, d = 0) => v == null ? "—" : v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: 0 });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// capacidade no período e unidade escolhidos
+function cap(it, unidade = st.unidade, periodo = st.periodo) {
+  let v = it.ppm * 60; // por hora
+  if (periodo === "dia") v *= horasDe(it.planta);
+  if (periodo === "mes") v *= horasMes(it.planta);
+  if (unidade === "emb") v = it.un_emb ? v / it.un_emb : null;
+  return v;
+}
+const rotulo = () => `${st.unidade === "pac" ? "pac" : "cx/fd"}/${st.periodo === "mes" ? "mês" : st.periodo}`;
+
+function filtrados() {
+  const termos = sem(st.q).split(/\s+/).filter(Boolean);
+  const sel = plantasAtivas();
+  return itens.filter(it => sel.includes(it.planta) &&
+    termos.every(t => it.busca.includes(t)));
+}
+
+function render() {
+  // não redesenha o campo enquanto a pessoa digita nele, a não ser que tenha trocado de planta
+  if (horasDesenhadas !== st.plantasSel.join("|") || !document.activeElement?.closest("#horasPl")) desenharHoras();
+  const lista = filtrados();
+  const ativas = plantasAtivas();
+  const base = itens.filter(i => ativas.includes(i.planta));
+  const chave = i => i.cod || i.produto;
+  const kpis = [
+    [new Set(base.map(i => i.planta + "|" + i.maquina)).size, "máquinas"],
+    [new Set(base.map(chave)).size, "produtos / formatos"],
+  ];
+  // total por dia: soma de cada máquina com o SKU que está rodando nela
+  const tot = { caixas: 0, fardos: 0, un: 0 }, totMes = { caixas: 0, fardos: 0 };
+  for (const p of ativas) {
+    const daPlanta = base.filter(i => i.planta === p);
+    for (const m of new Set(daPlanta.map(i => i.maquina))) {
+      const run = rodando(p, m, daPlanta.filter(i => i.maquina === m).sort((a, b) => (cap(b) || 0) - (cap(a) || 0)));
+      const emb = cap(run, "emb", "dia");
+      if (emb) { tot[tipoEmb(run)] += emb; totMes[tipoEmb(run)] += cap(run, "emb", "mes"); } else tot.un += cap(run, "pac", "dia");
+    }
+  }
+  const partes = [tot.caixas && `${fmt(tot.caixas)} cx`, tot.fardos && `${fmt(tot.fardos)} fd`].filter(Boolean);
+  kpis.push([tot.caixas + tot.fardos, tot.fardos && tot.caixas ? "caixas + fardos por dia" : tot.fardos ? "fardos por dia" : "caixas por dia",
+    `${partes.length > 1 ? partes.join(" + ") + " · " : ""}SKU em produção em cada máquina · ${ativas.map(p => `${p} ${fmt(horasDe(p), 1)} h`).join(" · ")}`, "destaque"]);
+  // por hora: total do dia de cada planta ÷ horas/dia dela (somado entre as plantas selecionadas)
+  const porHora = ativas.reduce((t, p) => {
+    const daPlanta = base.filter(i => i.planta === p);
+    let dia = 0;
+    for (const m of new Set(daPlanta.map(i => i.maquina))) {
+      const run = rodando(p, m, daPlanta.filter(i => i.maquina === m).sort((a, b) => (cap(b) || 0) - (cap(a) || 0)));
+      dia += cap(run, "emb", "dia") || 0;
+    }
+    return t + dia / horasDe(p);
+  }, 0);
+  const tipoDia = tot.fardos && tot.caixas ? "caixas + fardos" : tot.fardos ? "fardos" : "caixas";
+  kpis.push([porHora, `${tipoDia} por hora`, ativas.length === 1
+    ? `${fmt(tot.caixas + tot.fardos)} por dia ÷ ${fmt(horasDe(ativas[0]), 1)} h`
+    : `soma das plantas: ${ativas.map(p => `${p} ${fmt(horasDe(p), 1)} h`).join(" · ")}`, "destaque"]);
+  // produção total do período = total por dia × dias/mês
+  const partesMes = [totMes.caixas && `${fmt(totMes.caixas)} cx`, totMes.fardos && `${fmt(totMes.fardos)} fd`].filter(Boolean);
+  const tipoTot = tot.fardos && tot.caixas ? "caixas + fardos" : tot.fardos ? "fardos" : "caixas";
+  const uma = ativas.length === 1;
+  kpis.push([totMes.caixas + totMes.fardos, `${tipoTot} em ${nomeMes(st.mes)}${uma ? ` · ${fmt(diasDe(ativas[0]))} dias` : ""}`,
+    `${partesMes.length > 1 ? partesMes.join(" + ") + " · " : ""}` + (uma
+      ? `${fmt(horasMes(ativas[0]))} h no mês: ${descHoras(ativas[0])}`
+      : ativas.map(p => `${p} ${fmt(diasDe(p))} d${extrasDe(p).length ? ` (+${extrasDe(p).length})` : ""}`).join(" · ")), "destaque"]);
+  if (st.q) kpis.push([new Set(lista.map(chave)).size, `encontrados para “${esc(st.q)}”`]);
+  document.getElementById("kpis").innerHTML = kpis.map(([v, l, sub, cls]) =>
+    `<div class="kpi ${cls || ""}"><b class="num">${fmt(v)}</b><span>${l}</span>${sub ? `<small>${sub}</small>` : ""}</div>`).join("");
+
+  const main = document.getElementById("main");
+  if (!lista.length) { main.innerHTML = `<div class="empty">Nada encontrado. Tente outro termo ou planta.</div>`; return; }
+  main.innerHTML = st.visao === "linha" ? linha(lista, ativas) : st.visao === "mapa" ? mapa(lista, ativas) : tabela(lista);
+  ligar();
+}
+
+function mapa(lista, ativas) {
+  const termos = !!st.q;
+  return ativas.map(p => {
+    const daPlanta = itens.filter(i => i.planta === p);
+    const doFiltro = lista.filter(i => i.planta === p);
+    if (!doFiltro.length) return "";
+    const maqs = [...new Set(daPlanta.map(i => i.maquina))].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+    const max = Math.max(...daPlanta.map(i => cap(i) || 0));
+    const visiveis = termos ? maqs.filter(m => doFiltro.some(i => i.maquina === m)) : maqs;
+    const blocos = visiveis.map(m => {
+      const prods = daPlanta.filter(i => i.maquina === m).sort((a, b) => (cap(b) || 0) - (cap(a) || 0));
+      const hits = new Set(doFiltro.filter(i => i.maquina === m).map(i => i.id));
+      const ordem = termos ? [...prods.filter(i => hits.has(i.id)), ...prods.filter(i => !hits.has(i.id))] : prods;
+      const key = p + "|" + m;
+      const aberto = st.abertas.has(key);
+      const mostrar = aberto ? ordem : ordem.slice(0, Math.max(VISIBLE, termos ? hits.size : 0));
+      const faixa = [Math.min(...prods.map(i => i.ppm)), Math.max(...prods.map(i => i.ppm))];
+      const lis = mostrar.map(i => {
+        const v = cap(i);
+        return `<li data-id="${i.id}" class="${termos && hits.has(i.id) ? "hit" : ""}" title="${esc(i.produto)}">
+          <div class="p-row"><span class="p-name">${i.cod ? `<span class="cod">${esc(i.cod)}</span>` : ""}${esc(i.produto)}</span>
+          <span class="p-val num">${fmt(v)}</span></div>
+          <div class="bar"><i style="width:${v ? Math.max(2, v / max * 100) : 0}%"></i></div></li>`;
+      }).join("");
+      const resto = ordem.length - mostrar.length;
+      return `<div class="machine ${termos ? "hit" : ""}">
+        <div class="m-head"><div class="m-icon">${ICONE}</div>
+          <div><div class="m-name">${esc(m)}</div>
+          <div class="m-meta num">${prods.length} ${prods.length === 1 ? "item" : "itens"} · ${faixa[0] === faixa[1] ? fmt(faixa[0], 1) : fmt(faixa[0], 1) + "–" + fmt(faixa[1], 1)} pac/min</div></div></div>
+        <ul class="m-list">${lis}</ul>
+        ${resto > 0 ? `<button class="more" data-key="${esc(key)}">+ ${resto} ${resto === 1 ? "item" : "itens"}</button>`
+          : aberto && ordem.length > VISIBLE ? `<button class="more" data-key="${esc(key)}">mostrar menos</button>` : ""}
+      </div>`;
+    }).join("");
+    return `<section class="plant" style="--pc:${corDe(p)}">
+      <div class="plant-head"><h2>${esc(p)}</h2>
+        <span class="sub num">${maqs.length} máquinas · ${new Set(daPlanta.map(i => i.cod || i.produto)).size} produtos/formatos · valores em ${rotulo()}</span></div>
+      <div class="floor">${blocos}</div></section>`;
+  }).join("");
+}
+
+// ---- visão "Desenho": estações sobre a esteira da planta ----
+// ordena pelo número da máquina (Selgron 01, Selgron 02, Rosca Mix 03...); sem número vai pro fim
+const numMaq = m => { const n = m.match(/\d+/); return n ? +n[0] : Infinity; };
+const ordemMaq = (a, b) => numMaq(a) - numMaq(b) || a.localeCompare(b, "pt-BR", { numeric: true });
+function partesNome(m) {
+  const n = m.match(/\d+(\s*-\s*\d+)?/);
+  if (!n) return { modelo: "", num: m };
+  const modelo = m.replace(n[0], " ").replace(/\s*\/\s*/g, " / ").replace(/\s+/g, " ").replace(/^[\s/]+|[\s/]+$/g, "");
+  return { modelo, num: n[0].replace(/\s+/g, "") };
+}
+const PARADA = new Set(["KG", "GR", "G", "CX", "FD", "TRAD", "DIA", "UND", "DA", "DE", "TERRINHA"]);
+function familia(prods) {
+  const grupos = contar(prods.map(i => i.grupo).filter(g => g && g.length > 3));
+  if (grupos.length) return grupos.slice(0, 2).join(" · ");
+  const pal = prods.map(i => (i.categoria || i.produto).toUpperCase().split(/[\s\/-]+/)
+    .find(w => /^[A-ZÀ-Ú]{3,}$/.test(w) && !PARADA.has(w)) || (i.categoria || "")).filter(Boolean);
+  return contar(pal).slice(0, 2).join(" · ");
+}
+function contar(arr) {
+  const c = new Map(); arr.forEach(x => c.set(x, (c.get(x) || 0) + 1));
+  return [...c.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
+}
+// desenho de envasadora vertical (viewBox 150x220): funil, dosador, gabinete com painel, bobina de filme, tubo formador, mordaças e pacote
+const ENVASADORA = `<svg viewBox="0 0 150 220" aria-hidden="true">
+  <rect x="27" y="150" width="7" height="66" fill="var(--bp-ink-dark)"/><rect x="116" y="150" width="7" height="66" fill="var(--bp-ink-dark)"/>
+  <rect x="22" y="212" width="17" height="4" rx="1" fill="var(--bp-ink-dark)"/><rect x="111" y="212" width="17" height="4" rx="1" fill="var(--bp-ink-dark)"/>
+  <path d="M42 3h66l-14 22H56z" fill="var(--bp-ink-light)" stroke="var(--bp-ink-dark)" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M50 9h50" stroke="var(--bp-ink-dark)" stroke-width="1" opacity=".5"/>
+  <rect x="60" y="25" width="30" height="13" rx="2" fill="var(--bp-metal)" stroke="var(--bp-ink-dark)" stroke-width="1.5"/>
+  <path d="M66 29v5M72 29v5M78 29v5M84 29v5" stroke="var(--bp-ink-dark)" stroke-width="1.2"/>
+  <rect x="18" y="38" width="114" height="114" rx="5" fill="var(--bp-ink)" stroke="var(--bp-ink-dark)" stroke-width="2"/>
+  <rect x="28" y="42" width="94" height="68" rx="3" fill="var(--bp-ink-dark)"/>
+  <circle cx="34" cy="124" r="4" fill="#5fbf7a"/><circle cx="46" cy="124" r="4" fill="#e06b5f"/>
+  <rect x="58" y="120" width="34" height="8" rx="2" fill="var(--bp-ink-dark)"/>
+  <path d="M28 138h94" stroke="var(--bp-ink-dark)" stroke-width="1.5" opacity=".6"/>
+  <circle cx="136" cy="110" r="12" fill="var(--bp-metal)" stroke="var(--bp-ink-dark)" stroke-width="1.5"/>
+  <circle cx="136" cy="110" r="4" fill="var(--bp-ink-dark)"/><path d="M128 119L84 158" stroke="var(--bp-metal)" stroke-width="2"/>
+  <path d="M64 152h22l-3 8H67z" fill="var(--bp-metal)" stroke="var(--bp-ink-dark)" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="69" y="160" width="12" height="16" fill="var(--bp-metal)" stroke="var(--bp-ink-dark)" stroke-width="1.5"/>
+  <rect x="52" y="174" width="15" height="7" rx="1.5" fill="var(--bp-ink-dark)"/><rect x="83" y="174" width="15" height="7" rx="1.5" fill="var(--bp-ink-dark)"/>
+  <g class="st-bag"><path d="M64 186h22l2 4v14l-2 4H64l-2-4v-14z" fill="var(--bp-bag)" stroke="var(--bp-ink-dark)" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M64 191h22M64 203h22" stroke="var(--bp-ink-dark)" stroke-width="1" opacity=".6"/></g>
+</svg>`;
+const SETA = `<svg viewBox="0 0 30 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6h26M21 1l6 5-6 5"/></svg>`;
+
+// ---- programação: qual SKU roda em cada máquina e quanto precisa produzir no mês ----
+const chaveItem = i => `${i.planta}|${i.maquina}|${i.cod || ""}|${i.produto}`;   // mesmo código pode ter versão CX e FD na mesma máquina
+const chaveMaq = (p, m) => `${p}|${m}`;
+const fatorUn = i => st.unidade === "emb" && i.un_emb ? i.un_emb : 1;   // pacotes por unidade exibida
+const unNome = i => st.unidade === "emb" && i.un_emb ? "cx/fd" : "pac";
+const horasNec = i => (st.nec[chaveItem(i)] || 0) / (i.ppm * 60);
+const horasDisp = p => horasMes(p);
+// SKU padrão de cada máquina (pelo número da máquina): texto no nome do produto e/ou código + embalagem
+const PADRAO = {
+  Matriz: [
+    [[1, 2], { texto: "NA MEDIDA 490" }],
+    [[3, 4, 5, 6, 7], { cod: "00002", emb: "CX" }],   // caixa 500 g
+    [[8], { cod: "00001", emb: "CX" }],               // caixa 1 kg
+    [[9, 10, 11], { cod: "00002", emb: "FD" }],       // fardo 500 g
+    [[12, 13], { cod: "00001", emb: "FD" }],          // fardo 1 kg
+    [[14, 15], { texto: "DELIOCA PREMIUM 560" }],
+  ],
+  "Filial Tapioca": [
+    [[1, 2], { cod: "00002", emb: "FD" }],            // fardo 500 g
+    [[3, 4], { cod: "00001", emb: "FD" }],            // fardo 1 kg
+  ],
+};
+function padraoDe(p, m, prods) {
+  const regra = (PADRAO[p] || []).find(([nums]) => nums.includes(numMaq(m)));
+  if (!regra) return null;
+  const { texto, cod, emb } = regra[1];
+  return prods.find(i => (!texto || i.produto.toUpperCase().includes(texto)) && (!cod || i.cod === cod) &&
+    (!emb || new RegExp(`\\b${emb}\\b`).test(i.produto.toUpperCase()))) || null;
+}
+function rodando(p, m, prods) {
+  const k = st.rod[chaveMaq(p, m)];
+  return prods.find(i => chaveItem(i) === k) || padraoDe(p, m, prods) || prods[0];
+}
+function ocupacao(prods) {
+  const h = prods.reduce((s, i) => s + horasNec(i), 0);
+  return { h, pct: prods.length ? h / horasDisp(prods[0].planta) * 100 : 0, tem: prods.some(i => st.nec[chaveItem(i)] > 0) };
+}
+const classeOcc = pct => pct > 100 ? "over" : pct > 85 ? "warn" : "";
+const nomeCurto = t => t.replace(/\s*-\s*(CX|FD|UND)\b.*$/i, "").replace(/\s+/g, " ").trim();
+
+// card "quantas caixas faz por dia" do SKU em produção (sempre por dia, com as horas/dia escolhidas)
+const CAIXA = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>`;
+function tipoEmb(i) {
+  const t = `${i.grupo || ""} ${i.produto}`.toUpperCase();
+  return /\bFD\b|FARDO/.test(t) && !/\bCX\b/.test(t) ? "fardos" : "caixas";
+}
+// capacidade por turno exatamente como foi informada (só existe nas abas que têm "Cap. turno")
+const turnoTxt = i => i.cap_turno ? `${fmt(i.cap_turno)} ${i.emb_turno === "CX" ? "cx" : "fd"}/turno${i.horas_turno ? ` (${fmt(i.horas_turno)} h)` : ""}` : "";
+function cardDia(i) {
+  const un = cap(i, "pac", "dia"), emb = cap(i, "emb", "dia");
+  if (!emb) return `<div class="st-card-top">${CAIXA}Por dia</div><div class="st-card-n num">${fmt(un)}</div><div class="st-card-sub">pacotes/dia</div>`;
+  return `<div class="st-card-top">${CAIXA}${tipoEmb(i)} por dia</div>
+    <div class="st-card-n num">${fmt(emb)}</div>
+    <div class="st-card-sub num">${fmt(i.un_emb)} un/${tipoEmb(i) === "fardos" ? "fd" : "cx"} · ${fmt(un)} un/dia</div>${turnoTxt(i) ? `
+    <div class="st-card-sub num" style="color:var(--bp-line);font-weight:600">${turnoTxt(i)}</div>` : ""}`;
+}
+
+function linha(lista, ativas) {
+  const termos = !!st.q;
+  return ativas.map(p => {
+    const daPlanta = itens.filter(i => i.planta === p);
+    const doFiltro = lista.filter(i => i.planta === p);
+    if (!doFiltro.length) return "";
+    const maqs = [...new Set(daPlanta.map(i => i.maquina))].sort(ordemMaq);
+    const ocMaq = {};
+    const ests = maqs.map(m => {
+      const prods = daPlanta.filter(i => i.maquina === m).sort((a, b) => (cap(b) || 0) - (cap(a) || 0));
+      const hit = doFiltro.some(i => i.maquina === m);
+      const { modelo, num } = partesNome(m);
+      const run = rodando(p, m, prods);
+      const oc = ocMaq[m] = ocupacao(prods);
+      return `<div class="st ${termos ? (hit ? "hit" : "dim") : ""}" data-maq="${esc(chaveMaq(p, m))}" title="${esc(m)} — clique para programar">
+        <div class="st-belt"><i></i></div><div class="st-arrow">${SETA}</div>
+        <div class="st-block">${ENVASADORA}<div class="st-panel">${modelo ? `<div class="st-model">${esc(modelo)}</div>` : ""}
+          <div class="st-num ${num.length > 5 ? "txt" : num.length > 2 ? "med" : ""}">${esc(num)}</div></div></div>
+        <div class="st-card">${cardDia(run)}
+          <div class="st-run" title="${esc(run.produto)}">${prods.length > 1 ? "▶ " : ""}${esc(nomeCurto(run.produto))}${prods.length > 1 ? ` <small>(1 de ${prods.length})</small>` : ""}</div></div>
+        ${oc.tem ? `<div class="occ ${classeOcc(oc.pct)}"><b class="num">${fmt(oc.pct)}%</b> ocupada · <span class="num">${fmt(oc.h)} de ${fmt(horasDisp(p))} h</span>
+          <div class="bar"><i style="width:${Math.min(100, oc.pct)}%"></i></div></div>` : `<div class="st-lbl">${esc(familia(prods))}</div>`}
+      </div>`;
+    }).join("");
+    const comNec = Object.values(ocMaq).filter(o => o.tem);
+    const hTot = comNec.reduce((s, o) => s + o.h, 0);
+    const nOver = comNec.filter(o => o.pct > 100).length;
+    return `<section class="bp">
+      <h2 class="bp-title">Planta ${esc(p)} — linha de envase</h2>
+      <div class="bp-sub num">${maqs.length} máquinas · ${new Set(daPlanta.map(i => i.cod || i.produto)).size} produtos/formatos · capacidade do SKU em produção, em ${rotulo()}
+        ${comNec.length ? `<br>Programação do mês: ${comNec.length} ${comNec.length === 1 ? "máquina" : "máquinas"} com necessidade · ${fmt(hTot)} h de máquina${nOver ? ` · <b style="color:#d0493c">${nOver} acima de 100%</b>` : ""}` : ""}</div>
+      <div class="line">${ests}</div>
+      <div class="bp-io">Clique numa máquina para escolher o SKU e lançar a necessidade</div>
+      <div class="bp-stamp"><span>Desenho: capacidade</span><span>${esc(p)}</span><span class="num">${descHoras(p)} (${nomeMes(st.mes)})</span><span class="num">${esc(DADOS.atualizado.slice(0, 10))}</span></div>
+    </section>`;
+  }).join("");
+}
+
+function detalheMaq(chave) {
+  const [p, m] = chave.split("|");
+  const prods = itens.filter(i => i.planta === p && i.maquina === m).sort((a, b) => (cap(b) || 0) - (cap(a) || 0));
+  const termos = sem(st.q).split(/\s+/).filter(Boolean);
+  const d = document.getElementById("det");
+  d.className = "wide";
+  const per = st.periodo === "hora" ? "dia" : st.periodo;   // capacidade no diálogo: por dia ou mês
+  const linhaSku = i => {
+    const k = chaveItem(i), on = rodando(p, m, prods) === i;
+    const hit = termos.length && termos.every(t => i.busca.includes(t));
+    const val = st.nec[k] ? +(st.nec[k] / fatorUn(i)).toFixed(2) : "";
+    return `<tr class="${on ? "on" : ""}" data-k="${esc(k)}">
+      <td><input type="radio" name="rod" ${on ? "checked" : ""} aria-label="Em produção"></td>
+      <td class="prod ${hit ? "hit" : ""}">${i.cod ? `<span style="color:var(--faint)">${esc(i.cod)}</span> ` : ""}${esc(i.produto)}</td>
+      <td class="r num">${fmt(cap(i, st.unidade, per))}</td>
+      <td class="r"><input type="number" min="0" step="any" value="${val}" placeholder="0"> <span class="sub">${unNome(i)}</span></td>
+      <td class="r num h">${st.nec[k] ? fmt(horasNec(i), 1) : "—"}</td></tr>`;
+  };
+  const resumo = () => {
+    const oc = ocupacao(prods), run = rodando(p, m, prods);
+    return `<div><b>${esc(nomeCurto(run.produto))}</b><span>em produção agora</span></div>
+      <div><b class="num">${fmt(oc.h, 1)} h</b><span>necessárias no mês</span></div>
+      <div><b class="num">${fmt(horasDisp(p))} h</b><span>disponíveis em ${nomeMes(st.mes)} (${descHoras(p)})</span></div>
+      <div class="${oc.pct > 100 ? "over" : ""}"><b class="num">${fmt(oc.pct)}%</b><span>ocupação${oc.pct > 100 ? ` · faltam ${fmt(oc.h - horasDisp(p))} h` : ""}</span></div>`;
+  };
+  d.innerHTML = `<div class="d-head" style="--pc:${corDe(p)}"><span class="dot" style="margin-top:6px"></span>
+      <h3>${esc(m)} <span class="sub">· ${esc(p)} · ${prods.length} ${prods.length === 1 ? "SKU" : "SKUs"}</span></h3><button class="d-close" aria-label="Fechar">×</button></div>
+    <div class="d-body">
+      <div class="d-sum" id="dsum">${resumo()}</div>
+      <div class="prog-wrap"><table class="prog"><thead><tr><th title="SKU em produção">▶</th><th>SKU</th>
+        <th class="r">Capac. ${st.unidade === "pac" ? "pac" : "cx/fd"}/${per === "mes" ? "mês" : "dia"}</th>
+        <th class="r">Necessidade do mês</th><th class="r">Horas</th></tr></thead>
+        <tbody>${prods.map(linhaSku).join("")}</tbody></table></div>
+      <div class="d-actions"><span class="sub">Marque ▶ o SKU que está rodando. A ocupação soma as horas de todos os SKUs com necessidade.</span>
+        <button class="btn" id="limpar">Limpar necessidades</button></div>
+    </div>`;
+  const atualizar = () => { salvar(); d.querySelector("#dsum").innerHTML = resumo(); };
+  d.querySelectorAll("tbody tr").forEach(tr => {
+    const k = tr.dataset.k, it = prods.find(i => chaveItem(i) === k);
+    tr.querySelector("input[type=radio]").onchange = () => {
+      st.rod[chaveMaq(p, m)] = k;
+      d.querySelectorAll("tbody tr").forEach(x => x.classList.toggle("on", x === tr));
+      atualizar();
+    };
+    tr.querySelector("input[type=number]").oninput = e => {
+      const v = parseFloat(e.target.value);
+      if (v > 0) st.nec[k] = v * fatorUn(it); else delete st.nec[k];
+      tr.querySelector(".h").textContent = st.nec[k] ? fmt(horasNec(it), 1) : "—";
+      atualizar();
+    };
+    tr.querySelector(".prod").onclick = () => { d.onclose = null; d.close(); detalhe(it.id); render(); };
+  });
+  d.querySelector("#limpar").onclick = () => { prods.forEach(i => delete st.nec[chaveItem(i)]); salvar(); detalheMaq(chave); };
+  d.querySelector(".d-close").onclick = () => d.close();
+  d.onclick = e => { if (e.target === d) d.close(); };
+  d.onclose = () => { d.onclose = null; render(); };
+  if (!d.open) d.showModal();
+}
+
+// quadro: colunas = sábados e feriados (em dia de semana) do mês; linhas = plantas; marcar = planta trabalha nesse dia
+function abrirExtras() {
+  const [y, m] = st.mes.split("-").map(Number);
+  const fer = diasUteis(st.mes).fer;
+  const dias = [];
+  for (let d = new Date(y, m - 1, 1); d.getMonth() === m - 1; d.setDate(d.getDate() + 1)) {
+    const f = fer.find(([x]) => x.getDate() === d.getDate());
+    if (d.getDay() === 6 || f) dias.push({ iso: `${st.mes}-${String(d.getDate()).padStart(2, "0")}`, dia: d.getDate(),
+      sem: ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][d.getDay()], fer: f ? f[1] : null });
+  }
+  const totTxt = p => `${fmt(diasDe(p))} dias${extrasDe(p).length ? ` <small>(${fmt(diasMes())} + ${extrasDe(p).length})</small>` : ""}<br><small>${fmt(horasMes(p))} h</small>`;
+  // mostra só as plantas selecionadas no topo (evita marcar "Filial" achando que é "Filial Tapioca")
+  const visiveis = plantasAtivas();
+  const outras = plantas.filter(p => !visiveis.includes(p) && extrasManuais(p).length);
+  const ddmm = iso => `${+iso.slice(8)}/${+iso.slice(5, 7)}`;
+  const d = document.getElementById("det");
+  d.className = "wide";
+  d.innerHTML = `<div class="d-head"><h3>Dias extras — ${nomeMes(st.mes)}/${y}</h3><button class="d-close" aria-label="Fechar">×</button></div>
+    <div class="d-body">
+      <div class="sub" style="margin-bottom:12px">Marque os sábados (ou feriados) em que ${visiveis.length === 1 ? `a <b>${esc(visiveis[0])}</b>` : "cada planta"} vai trabalhar. Base: ${fmt(diasMes())} dias úteis (seg a sex).
+        ${visiveis.length < plantas.length ? `<br>Mostrando só ${visiveis.length === 1 ? "a planta selecionada" : "as plantas selecionadas"} no topo. Para marcar outra, selecione-a (ou Todas).` : ""}
+        ${outras.length ? `<br>Outras plantas com dia extra neste mês: ${outras.map(p => `${esc(p)} (${extrasManuais(p).map(ddmm).join(", ")})`).join(" · ")}` : ""}</div>
+      <div class="table-wrap" style="box-shadow:none"><table class="ext"><thead><tr><th>Planta</th>
+        ${dias.map(x => `<th class="${x.fer ? "fer" : ""}" title="${x.fer || "sábado"}">${x.sem} ${x.dia}<small>${x.fer ? esc(x.fer) : "sábado"}</small></th>`).join("")}
+        <th>Total</th></tr></thead>
+        <tbody>${visiveis.map(p => `<tr data-p="${esc(p)}" style="--pc:${corDe(p)}"><td><span class="dot"></span>${esc(p)}${SABADO_SEMPRE[p] ? ` <span class="sub">· todo sábado</span>` : ""}${horasSab(p) !== horasDe(p) ? ` <span class="sub">· sáb ${fmt(horasSab(p), 1)} h</span>` : ""}</td>
+          ${dias.map(x => {
+            const fixo = SABADO_SEMPRE[p] && x.fer === null && x.sem === "sáb";
+            return `<td><input type="checkbox" data-d="${x.iso}" ${extrasDe(p).includes(x.iso) ? "checked" : ""} ${fixo ? `disabled title="${esc(p)} trabalha todo sábado"` : ""} aria-label="${esc(p)} trabalha ${x.sem} ${x.dia}"></td>`;
+          }).join("")}
+          <td class="tot num">${totTxt(p)}</td></tr>`).join("")}</tbody></table></div>
+      <div class="d-actions"><span class="sub">Fica guardado para ${nomeMes(st.mes)}. Use o seletor de mês para marcar outros meses.</span>
+        <button class="btn" id="limparExtras">Desmarcar ${visiveis.length === plantas.length ? "tudo" : "estas"}</button></div>
+    </div>`;
+  d.querySelectorAll("tbody tr").forEach(tr => {
+    const p = tr.dataset.p;
+    tr.querySelectorAll("input:not(:disabled)").forEach(cb => cb.onchange = () => {
+      const mes = st.extras[st.mes] = st.extras[st.mes] || {};
+      const lista = new Set(mes[p] || []);
+      cb.checked ? lista.add(cb.dataset.d) : lista.delete(cb.dataset.d);
+      mes[p] = [...lista].sort();
+      salvar(); tr.querySelector(".tot").innerHTML = totTxt(p); window.marcarBotaoExtras();
+      render();   // atualiza cards e desenho na hora, sem depender de como a janela é fechada
+    });
+  });
+  d.querySelector("#limparExtras").onclick = () => {
+    const mes = st.extras[st.mes] = st.extras[st.mes] || {};
+    visiveis.forEach(p => delete mes[p]);   // limpa só as plantas mostradas
+    salvar(); window.marcarBotaoExtras(); render(); abrirExtras();
+  };
+  d.querySelector(".d-close").onclick = () => d.close();
+  d.onclick = e => { if (e.target === d) d.close(); };
+  d.onclose = () => { d.onclose = null; render(); };
+  if (!d.open) d.showModal();
+}
+
+const COLS = [
+  ["planta", "Planta"], ["maquina", "Máquina"], ["cod", "Cód."], ["produto", "Produto / formato"], ["grupo", "Grupo"],
+  ["un_emb", "Un/emb", "r"], ["ppm_nominal", "PPM nominal", "r"], ["ppm", "PPM efetivo", "r"], ["cap", "", "r"],
+];
+function tabela(lista) {
+  const { col, dir } = st.sort;
+  const val = i => col === "cap" ? cap(i) : i[col];
+  const ord = [...lista].sort((a, b) => {
+    const x = val(a), y = val(b);
+    if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === "number" ? x - y : String(x).localeCompare(String(y), "pt-BR", { numeric: true })) * dir;
+  });
+  const th = COLS.map(([k, l, c]) => `<th data-col="${k}" class="${c || ""}" ${k === col ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${k === "cap" ? "Capacidade " + rotulo() : l}</th>`).join("");
+  const trs = ord.map(i => `<tr data-id="${i.id}" style="--pc:${corDe(i.planta)}">
+    <td><span class="dot"></span>${esc(i.planta)}</td><td>${esc(i.maquina)}</td><td class="num">${esc(i.cod || "—")}</td>
+    <td class="prod">${esc(i.produto)}${i.alergenico ? ` <span class="tag">alergênico</span>` : ""}</td><td>${esc(i.grupo || "—")}</td>
+    <td class="r num">${fmt(i.un_emb)}</td><td class="r num">${fmt(i.ppm_nominal, 1)}</td><td class="r num">${fmt(i.ppm, 1)}</td>
+    <td class="r num"><b>${fmt(cap(i))}</b></td></tr>`).join("");
+  return `<div class="table-wrap"><table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table></div>`;
+}
+
+function detalhe(id) {
+  const it = itens[id];
+  const mesmo = itens.filter(i => it.cod ? i.cod === it.cod : i.produto === it.produto);
+  const linha = (u, p) => fmt(cap(it, u, p));
+  const d = document.getElementById("det");
+  d.className = "";
+  d.innerHTML = `<div class="d-head" style="--pc:${corDe(it.planta)}"><span class="dot" style="margin-top:6px"></span>
+      <h3>${it.cod ? esc(it.cod) + " · " : ""}${esc(it.produto)}</h3><button class="d-close" aria-label="Fechar">×</button></div>
+    <div class="d-body">
+      <div class="sub" style="margin-bottom:12px">${esc(it.planta)} · ${esc(it.maquina)}${it.grupo ? " · " + esc(it.grupo) : ""}${it.alergenico ? " · alergênico" : ""}</div>
+      <div class="d-grid">
+        <div><b class="num">${fmt(it.ppm, 1)}</b><span>pac/min efetivo${it.ppm_nominal ? ` (nominal ${fmt(it.ppm_nominal, 1)})` : ""}</span></div>
+        <div><b class="num">${linha("pac", "hora")}</b><span>pac/hora</span></div>
+        <div><b class="num">${linha("pac", "dia")}</b><span>pac/dia (${fmt(horasDe(it.planta), 1)} h)</span></div>
+        <div><b class="num">${linha("emb", "dia")}</b><span>cx/fd por dia${it.un_emb ? ` (${fmt(it.un_emb)} un)` : ""}</span></div>
+        <div><b class="num">${linha("emb", "mes")}</b><span>cx/fd em ${nomeMes(st.mes)} (${descHoras(it.planta)})</span></div>
+        ${it.cap_turno ? `<div style="outline:2px solid var(--accent)"><b class="num">${fmt(it.cap_turno)}</b><span>${it.emb_turno === "CX" ? "caixas" : "fardos"} por turno${it.horas_turno ? ` de ${fmt(it.horas_turno)} h` : ""} (informado)</span></div>` : ""}
+      </div>
+      ${mesmo.length > 1 ? `<h4>Onde mais é feito</h4><table><tbody>${mesmo.map(i => `<tr style="--pc:${corDe(i.planta)}">
+        <td><span class="dot"></span>${esc(i.planta)}</td><td>${esc(i.maquina)}</td><td class="r num"><b>${fmt(cap(i))}</b> ${rotulo()}</td></tr>`).join("")}</tbody></table>` : ""}
+    </div>`;
+  d.querySelector(".d-close").onclick = () => d.close();
+  d.onclick = e => { if (e.target === d) d.close(); };
+  d.showModal();
+}
+
+const ICONE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8V4h10v4M7 14h4M15 14h2"/></svg>`;
+
+function ligar() {
+  document.querySelectorAll("#main [data-id]").forEach(el => el.onclick = () => detalhe(+el.dataset.id));
+  document.querySelectorAll("[data-maq]").forEach(el => el.onclick = () => detalheMaq(el.dataset.maq));
+  document.querySelectorAll(".more").forEach(b => b.onclick = () => {
+    const k = b.dataset.key; st.abertas.has(k) ? st.abertas.delete(k) : st.abertas.add(k); render();
+  });
+  document.querySelectorAll("th[data-col]").forEach(th => th.onclick = () => {
+    const c = th.dataset.col;
+    st.sort = { col: c, dir: st.sort.col === c ? -st.sort.dir : (["cap", "ppm", "ppm_nominal", "un_emb"].includes(c) ? -1 : 1) };
+    salvar(); render();
+  });
+}
+
+function seg(id, chave) {
+  const el = document.getElementById(id);
+  const marcar = () => el.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st[chave]));
+  el.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; st[chave] = b.dataset.v; marcar(); salvar(); render(); });
+  marcar();
+}
+
+// plantas: seleção múltipla. Clicar liga/desliga a planta; "Todas" (ou nenhuma marcada) mostra todas.
+delete st.planta;
+st.plantasSel = (Array.isArray(st.plantasSel) ? st.plantasSel : []).filter(p => plantas.includes(p));
+{
+  const el = document.getElementById("plantas");
+  el.innerHTML = ["Todas", ...plantas].map(p => `<button data-v="${esc(p)}">${esc(p)}</button>`).join("");
+  el.setAttribute("title", "Clique para ligar/desligar cada planta; pode escolher várias");
+  const marcar = () => el.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed",
+    b.dataset.v === "Todas" ? st.plantasSel.length === 0 : st.plantasSel.includes(b.dataset.v)));
+  el.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const p = b.dataset.v;
+    if (p === "Todas") st.plantasSel = [];
+    else if (st.plantasSel.includes(p)) st.plantasSel = st.plantasSel.filter(x => x !== p);
+    else st.plantasSel = plantas.filter(x => x === p || st.plantasSel.includes(x));   // mantém a ordem das plantas
+    if (st.plantasSel.length === plantas.length) st.plantasSel = [];                  // todas marcadas = "Todas"
+    marcar(); salvar(); render();
+  });
+  marcar();
+}
+seg("unidade", "unidade"); seg("periodo", "periodo"); seg("visao", "visao");
+// um campo só: com UMA planta escolhida dá pra editar as horas; com várias mostra o resumo delas
+let horasDesenhadas = null;   // seleção mostrada no campo de horas
+function desenharHoras() {
+  const el = document.getElementById("horasPl");
+  horasDesenhadas = st.plantasSel.join("|");
+  if (st.plantasSel.length !== 1) {
+    el.innerHTML = `<span class="field" title="Escolha só uma planta para alterar as horas">${plantasAtivas().map(p => `${esc(p)} <b class="num">${fmt(horasDe(p), 1)}</b>`).join(" · ")}</span>`;
+    return;
+  }
+  const p = st.plantasSel[0];
+  el.innerHTML = `<label class="field"><input type="number" min="1" max="24" step="0.5" value="${horasDe(p)}" title="Horas por dia da ${esc(p)}"> h · ${esc(p)}</label>`;
+  el.querySelector("input").oninput = e => {
+    const v = parseFloat(e.target.value);
+    if (v > 0 && v <= 24) { st.horasPlanta[p] = v; salvar(); render(); }
+  };
+}
+// seletor de mês: do mês passado até 12 meses à frente; abre sempre no mês atual
+{
+  const hoje = new Date(), sel = document.getElementById("mes"), inp = document.getElementById("dias"), auto = document.getElementById("diasAuto");
+  st.mes = ymDe(hoje);
+  const opcoes = [];
+  for (let k = -1; k <= 12; k++) opcoes.push(ymDe(new Date(hoje.getFullYear(), hoje.getMonth() + k, 1)));
+  sel.innerHTML = opcoes.map(ym => `<option value="${ym}">${nomeMes(ym)}/${ym.slice(0, 4)}</option>`).join("");
+  const mostrar = () => {
+    sel.value = st.mes;
+    const calc = diasUteis(st.mes), manual = st.diasManual[st.mes] != null;
+    if (document.activeElement !== inp) inp.value = diasMes();
+    inp.classList.toggle("manual", manual);
+    auto.style.display = manual ? "" : "none";
+    inp.title = `${calc.n} dias úteis em ${nomeMes(st.mes)} (seg a sex)` +
+      (calc.fer.length ? ` · feriados: ${calc.fer.map(([d, n]) => `${d.getDate()}/${d.getMonth() + 1} ${n}`).join(", ")}` : " · sem feriado nacional em dia útil") +
+      (manual ? ` · ajustado à mão para ${st.diasManual[st.mes]}` : "");
+  };
+  sel.onchange = () => { st.mes = sel.value; mostrar(); window.marcarBotaoExtras(); render(); };
+  inp.oninput = () => { const v = parseInt(inp.value, 10); if (v > 0 && v <= 31) { st.diasManual[st.mes] = v; salvar(); mostrar(); render(); } };
+  auto.onclick = () => { delete st.diasManual[st.mes]; salvar(); inp.value = diasMes(); mostrar(); render(); };
+  const btnExtras = document.getElementById("extrasBtn");
+  const marcarBotao = () => {
+    const n = plantas.reduce((s, p) => s + extrasManuais(p).length, 0);
+    btnExtras.textContent = n ? `Sábados / extras (${n})` : "Sábados / extras";
+    btnExtras.classList.toggle("tem", n > 0);
+  };
+  window.marcarBotaoExtras = marcarBotao;
+  btnExtras.onclick = abrirExtras;
+  marcarBotao();
+  mostrar();
+}
+let t; document.getElementById("q").oninput = e => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value.trim(); render(); }, 120); };
+document.getElementById("sub").textContent = `Máquinas e capacidade por produto · atualizado em ${DADOS.atualizado}`;
+document.getElementById("foot").textContent = `Fonte: ${DADOS.origem}. PPM efetivo = pacotes por minuto já com eficiência (Matriz: nominal × eficiência de 750/844,6 por hora; Filial Tapioca: nominal × eficiência de 380/410 fd por hora; 2JM: capacidade por turno). Capacidade = PPM × 60 × horas/dia × dias úteis do mês (seg a sex, sem feriados nacionais; ajustável).`;
+render();
+</script>
+</body>
+</html>
